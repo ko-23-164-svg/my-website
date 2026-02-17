@@ -1,1 +1,104 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Мой облачный проект</title>
 
+<style>
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    padding: 50px;
+    background-color: #f4f4f9;
+}
+
+.form-container {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    width: 300px;
+}
+
+input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    background: #4b40e0;
+    border: none;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+button:hover {
+    background: #4a00c8;
+}
+</style>
+</head>
+
+<body>
+
+<div class="form-container">
+    <h3>Отправить заявку</h3>
+
+    <form id="feedbackForm">
+        <input type="text" id="userName" placeholder="Ваше имя" required>
+        <input type="email" id="userEmail" placeholder="Ваш Email" required>
+        <button type="submit">Отправить в облако</button>
+    </form>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+// 🔹 ВСТАВЬ СВОИ ДАННЫЕ ИЗ FIREBASE
+const firebaseConfig = {
+  apiKey: "AIzaSyAS1I_u_zQhjjEgZedrgCgy6S_LUaIF1q8",
+  authDomain: "gjgy-5930b.firebaseapp.com",
+  projectId: "gjgy-5930b",
+  storageBucket: "gjgy-5930b.firebasestorage.app",
+  messagingSenderId: "401653343249",
+  appId: "1:401653343249:web:60fbdb5cef88a9c1b4bdb0",
+  measurementId: "G-VVP7H6TBHZ"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+document.getElementById("feedbackForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const nameInput = document.getElementById("userName").value;
+    const emailInput = document.getElementById("userEmail").value;
+
+    try {
+        await addDoc(collection(db, "requests"), {
+            name: nameInput,
+            email: emailInput,
+            createdAt: new Date()
+        });
+
+        alert("Заявка успешно отправлена!");
+        document.getElementById("feedbackForm").reset();
+
+    } catch (error) {
+        console.error("Ошибка:", error);
+        alert("Ошибка отправки!");
+    }
+});
+</script>
+
+</body>
+</html>
