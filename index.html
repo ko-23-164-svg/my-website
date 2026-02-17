@@ -46,12 +46,10 @@ button:hover {
 }
 </style>
 </head>
-
 <body>
 
 <div class="form-container">
     <h3>Отправить заявку</h3>
-
     <form id="feedbackForm">
         <input type="text" id="userName" placeholder="Ваше имя" required>
         <input type="email" id="userEmail" placeholder="Ваш Email" required>
@@ -61,40 +59,46 @@ button:hover {
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
-// 🔹 Вставляем ваши реальные данные Firebase
+// 🔹 Ваша конфигурация Firebase
 const firebaseConfig = {
     apiKey: "AIzaSyAS1I_u_zQhjjEgZedrgCgy6S_LUaIF1q8",
     authDomain: "gjgy-5930b.firebaseapp.com",
     projectId: "gjgy-5930b",
-    storageBucket: "gjgy-5930b.appspot.com", // исправлено
+    storageBucket: "gjgy-5930b.appspot.com",
     messagingSenderId: "401653343249",
     appId: "1:401653343249:web:60fbdb5cef88a9c1b4bdb0"
 };
 
+// Инициализация Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 document.getElementById("feedbackForm").addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const nameInput = document.getElementById("userName").value;
-    const emailInput = document.getElementById("userEmail").value;
+    const name = document.getElementById("userName").value.trim();
+    const email = document.getElementById("userEmail").value.trim();
+
+    if (!name || !email) {
+        alert("Пожалуйста, заполните все поля!");
+        return;
+    }
 
     try {
         await addDoc(collection(db, "requests"), {
-            name: nameInput,
-            email: emailInput,
-            createdAt: new Date()
+            name: name,
+            email: email,
+            createdAt: serverTimestamp() // более правильная дата от Firestore
         });
 
         alert("Заявка успешно отправлена!");
-        document.getElementById("feedbackForm").reset();
+        e.target.reset();
 
-    } catch (error) {
-        console.error("Ошибка:", error);
-        alert("Ошибка отправки!");
+    } catch (err) {
+        console.error("Ошибка при отправке в Firestore:", err);
+        alert("Произошла ошибка при отправке. Проверьте консоль.");
     }
 });
 </script>
