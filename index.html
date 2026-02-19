@@ -154,7 +154,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const newName = prompt("Введите новое имя:", currentName);
+window.editRequest = async (id, currentName) => {
+    const newName = prompt("Введите новое имя:", currentName);
 
     if (!newName || newName.trim().length <= 2) {
         alert("Имя должно быть длиннее 2 символов");
