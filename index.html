@@ -21,11 +21,7 @@
         border-radius: 12px; 
         box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
     }
-    h3 { 
-        margin-top: 0; 
-        color: #1a1a1a; 
-        font-weight: 600; 
-    }
+    h3 { margin-top: 0; }
     input { 
         width: 100%; 
         padding: 12px; 
@@ -33,32 +29,17 @@
         border: 1px solid #ddd; 
         border-radius: 6px; 
         box-sizing: border-box; 
-        font-size: 14px;
     }
-    input:focus { 
-        outline: none; 
-        border-color: #007bfe; 
-    }
-    button#mainBtn { 
+    button { 
         background: #007bfe; 
         color: white; 
         border: none; 
-        padding: 12px; 
+        padding: 10px; 
         border-radius: 6px; 
-        width: 100%; 
-        font-weight: 600; 
         cursor: pointer; 
-        transition: 0.3s ease-in-out; 
-        font-size: 14px;
-        margin-top: 8px;
     }
-    button#mainBtn:hover { 
-        background: #0056b3; 
-    }
-    button#mainBtn:disabled { 
-        background: #ccc; 
-        cursor: not-allowed; 
-    }
+    button:hover { background: #0056b3; }
+    button:disabled { background: #ccc; }
     .post { 
         background: white; 
         border: 1px solid #eaeaea; 
@@ -67,55 +48,21 @@
         border-radius: 8px; 
         width: 100%; 
         max-width: 500px; 
-        position: relative; 
-        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-        transition: 0.2s;
-    }
-    .post:hover {
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     }
     .like-btn { 
-        cursor: pointer; 
-        border: 1px solid #e0e0e0; 
-        background: #f8f9fa; 
-        padding: 6px 15px; 
-        border-radius: 20px; 
-        font-size: 14px; 
-        transition: 0.2s; 
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        margin-top: 10px;
-    }
-    .like-btn:hover { 
-        background: #fee; 
-        border-color: #ff6b6b; 
+        margin-top: 8px;
+        margin-right: 5px;
+        background: #f1f1f1;
+        color: black;
     }
     .time { 
         font-size: 11px; 
         color: #999; 
         float: right; 
-        background: #f5f5f5;
-        padding: 3px 8px;
-        border-radius: 12px;
-    }
-    .post b {
-        color: #2c3e50;
-        font-size: 16px;
-    }
-    .post p {
-        color: #666;
-        margin: 8px 0;
-        word-break: break-all;
     }
     #feed {
         width: 100%;
         max-width: 500px;
-    }
-    .stats {
-        font-size: 12px;
-        color: #888;
-        margin-top: 5px;
     }
     </style>
 </head>
@@ -128,182 +75,131 @@
     <button id="mainBtn">➕ Добавить запись</button>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js"></script>
-
 <div id="feed"></div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
 import {
     getFirestore, collection, addDoc, query, orderBy, onSnapshot,
-    serverTimestamp, updateDoc, doc, increment
+    serverTimestamp, updateDoc, doc, increment, deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
-// КОНФИГУРАЦИЯ FIREBASE
+// 🔹 Firebase config
 const firebaseConfig = {
-  apiKey: "AIzaSyAS1I_u_zQhjjEgZedrgCgy6S_LUaIF1q8",
-  authDomain: "gjgy-5930b.firebaseapp.com",
-  projectId: "gjgy-5930b",
-  storageBucket: "gjgy-5930b.firebasestorage.app",
-  messagingSenderId: "401653343249",
-  appId: "1:401653343249:web:60fbdb5cef88a9c1b4bdb0",
-  measurementId: "G-VVP7H6TBHZ"
+    apiKey: "AIzaSyDgUxR0Txafc_qA-rpdSzKn33265IfxsHU",
+    authDomain: "qazaq-a072e.firebaseapp.com",
+    projectId: "qazaq-a072e",
+    storageBucket: "qazaq-a072e.firebasestorage.app",
+    messagingSenderId: "47025480909",
+    appId: "1:47025480909:web:3dd74ff29bc0c149f39a23"
 };
 
-// ИНИЦИАЛИЗАЦИЯ FIREBASE
+// 🔹 Init
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-////////////////////////////////////////////////////////////
-// 1️⃣ ФУНКЦИЯ УДАЛЕНИЯ
-////////////////////////////////////////////////////////////
-window.deleteRequest = async (id) => {
-    if (!confirm("Удалить запись?")) return;
+/////////////////////////////////////////////////////////
+// ➕ Добавление записи
+/////////////////////////////////////////////////////////
+document.getElementById('mainBtn').onclick = async () => {
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+
+    if (name.length <= 2) return alert("Имя должно быть длиннее 2 символов");
+    if (!email.includes('@')) return alert("Введите корректный email");
 
     try {
-        await deleteDoc(doc(db, "requests", id));
+        await addDoc(collection(db, "requests"), {
+            name,
+            email,
+            likes: 0,
+            timestamp: serverTimestamp()
+        });
+
+        document.getElementById('name').value = "";
+        document.getElementById('email').value = "";
     } catch (error) {
-        console.error("Ошибка удаления:", error);
-        alert("Не удалось удалить запись");
+        alert("Ошибка добавления");
+        console.error(error);
     }
 };
 
-////////////////////////////////////////////////////////////
-// 2️⃣ ФУНКЦИЯ РЕДАКТИРОВАНИЯ
-////////////////////////////////////////////////////////////
-window.editRequest = async (id, currentName) => {
-    const newName = prompt("Введите новое имя:", currentName);
-
-    if (!newName || newName.trim().length <= 2) {
-        alert("Имя должно быть длиннее 2 символов");
-        return;
+/////////////////////////////////////////////////////////
+// ❤️ Лайк
+/////////////////////////////////////////////////////////
+window.processLike = async (id) => {
+    try {
+        await updateDoc(doc(db, "requests", id), {
+            likes: increment(1)
+        });
+    } catch (error) {
+        alert("Ошибка лайка");
     }
+};
+
+/////////////////////////////////////////////////////////
+// ✏️ Редактирование
+/////////////////////////////////////////////////////////
+window.editRequest = async (id, currentName) => {
+    const newName = prompt("Новое имя:", currentName);
+    if (!newName || newName.trim().length <= 2) return;
 
     try {
         await updateDoc(doc(db, "requests", id), {
             name: newName.trim()
         });
     } catch (error) {
-        console.error("Ошибка редактирования:", error);
-        alert("Не удалось обновить запись");
+        alert("Ошибка редактирования");
     }
 };
 
-////////////////////////////////////////////////////////////
-// ЛАЙК
-////////////////////////////////////////////////////////////
-window.processLike = async (id) => {
-    const docRef = doc(db, "requests", id);
+/////////////////////////////////////////////////////////
+// 🗑 Удаление
+/////////////////////////////////////////////////////////
+window.deleteRequest = async (id) => {
+    if (!confirm("Удалить запись?")) return;
+
     try {
-        await updateDoc(docRef, { 
-            likes: increment(1) 
-        });
+        await deleteDoc(doc(db, "requests", id));
     } catch (error) {
-        console.error("Ошибка при обновлении:", error);
-        alert("Не удалось поставить лайк");
+        alert("Ошибка удаления");
     }
 };
 
-////////////////////////////////////////////////////////////
-// ДОБАВЛЕНИЕ ЗАПИСИ
-////////////////////////////////////////////////////////////
-document.getElementById('mainBtn').onclick = async () => {
-    const btn = document.getElementById('mainBtn');
-    const nameInput = document.getElementById('name');
-    const emailInput = document.getElementById('email');
-    
-    if (nameInput.value.length <= 2) {
-        alert("Имя должно быть длиннее 2 символов");
-        return;
-    }
-    if (!emailInput.value.includes('@')) {
-        alert("Введите корректный email");
-        return;
-    }
-    
-    btn.disabled = true;
-    btn.textContent = "⏳ Отправка...";
-    
-    try {
-        await addDoc(collection(db, "requests"), {
-            name: nameInput.value.trim(),
-            email: emailInput.value.trim(),
-            likes: 0,
-            timestamp: serverTimestamp()
-        });
-        
-        nameInput.value = "";
-        emailInput.value = "";
-        
-    } catch (e) { 
-        console.error("Ошибка Firestore:", e);
-        alert("❌ Ошибка безопасности: Данные отклонены сервером."); 
-    }
-    
-    btn.disabled = false;
-    btn.textContent = "➕ Добавить запись";
-};
-
-////////////////////////////////////////////////////////////
-// REAL-TIME СИНХРОНИЗАЦИЯ
-////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////
+// 🔄 Real-time обновление
+/////////////////////////////////////////////////////////
 const q = query(collection(db, "requests"), orderBy("timestamp", "desc"));
 
 onSnapshot(q, (snapshot) => {
     const feed = document.getElementById('feed');
-    feed.innerHTML = '';
-    
+    feed.innerHTML = "";
+
     if (snapshot.empty) {
-        feed.innerHTML = '<div class="post" style="text-align: center; color: #999;">📭 Нет записей</div>';
+        feed.innerHTML = "<div class='post'>📭 Нет записей</div>";
         return;
     }
-    
-    snapshot.forEach((docItem) => {
-        const data = docItem.data();
-        const postId = docItem.id;
-        
-        const timeString = data.timestamp 
-            ? data.timestamp.toDate().toLocaleString('ru-RU', { 
-                hour: '2-digit', 
-                minute: '2-digit',
-                day: '2-digit',
-                month: '2-digit'
-              })
-            : 'только что';
-        
-        feed.innerHTML += `
-            <div class="post" id="post-${postId}">
-                <span class="time">🕐 ${timeString}</span>
-                <b>${data.name || 'Без имени'}</b>
-                <p>📧 ${data.email || 'Нет email'}</p>
 
-                <div style="margin-top:10px; display:flex; gap:8px;">
-                    <button class="like-btn" onclick="processLike('${postId}')">
-                        ❤️ ${data.likes || 0}
-                    </button>
-                    <button class="like-btn" onclick="editRequest('${postId}', '${data.name}')">
-                        ✏️
-                    </button>
-                    <button class="like-btn" onclick="deleteRequest('${postId}')">
-                        🗑
-                    </button>
-                </div>
+    snapshot.forEach((item) => {
+        const data = item.data();
+        const id = item.id;
+
+        const time = data.timestamp
+            ? data.timestamp.toDate().toLocaleString("ru-RU")
+            : "только что";
+
+        feed.innerHTML += `
+            <div class="post">
+                <span class="time">${time}</span>
+                <b>${data.name}</b>
+                <p>📧 ${data.email}</p>
+                <button class="like-btn" onclick="processLike('${id}')">❤️ ${data.likes}</button>
+                <button class="like-btn" onclick="editRequest('${id}', '${data.name}')">✏️</button>
+                <button class="like-btn" onclick="deleteRequest('${id}')">🗑</button>
             </div>
         `;
     });
-}, (error) => {
-    console.error("Ошибка синхронизации:", error);
-    document.getElementById('feed').innerHTML = '<div class="post" style="text-align: center; color: red;">❌ Ошибка загрузки данных</div>';
 });
-
-// ДОПОЛНИТЕЛЬНО: очистка по Enter
-document.getElementById('email').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        document.getElementById('mainBtn').click();
-    }
-});
-
-console.log("✅ Приложение запущено");
 </script>
 
 </body>
