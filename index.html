@@ -154,6 +154,23 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+////////////////////////////////////////////////////////////
+// 1️⃣ ФУНКЦИЯ УДАЛЕНИЯ
+////////////////////////////////////////////////////////////
+window.deleteRequest = async (id) => {
+    if (!confirm("Удалить запись?")) return;
+
+    try {
+        await deleteDoc(doc(db, "requests", id));
+    } catch (error) {
+        console.error("Ошибка удаления:", error);
+        alert("Не удалось удалить запись");
+    }
+};
+
+////////////////////////////////////////////////////////////
+// 2️⃣ ФУНКЦИЯ РЕДАКТИРОВАНИЯ
+////////////////////////////////////////////////////////////
 window.editRequest = async (id, currentName) => {
     const newName = prompt("Введите новое имя:", currentName);
 
@@ -172,8 +189,9 @@ window.editRequest = async (id, currentName) => {
     }
 };
 
-
-// ГЛОБАЛЬНАЯ ФУНКЦИЯ ДЛЯ ЛАЙКОВ
+////////////////////////////////////////////////////////////
+// ЛАЙК
+////////////////////////////////////////////////////////////
 window.processLike = async (id) => {
     const docRef = doc(db, "requests", id);
     try {
@@ -186,13 +204,14 @@ window.processLike = async (id) => {
     }
 };
 
-// ОБРАБОТЧИК ДОБАВЛЕНИЯ ЗАПИСИ
+////////////////////////////////////////////////////////////
+// ДОБАВЛЕНИЕ ЗАПИСИ
+////////////////////////////////////////////////////////////
 document.getElementById('mainBtn').onclick = async () => {
     const btn = document.getElementById('mainBtn');
     const nameInput = document.getElementById('name');
     const emailInput = document.getElementById('email');
     
-    // Валидация на клиенте
     if (nameInput.value.length <= 2) {
         alert("Имя должно быть длиннее 2 символов");
         return;
@@ -213,7 +232,6 @@ document.getElementById('mainBtn').onclick = async () => {
             timestamp: serverTimestamp()
         });
         
-        // Очистка полей
         nameInput.value = "";
         emailInput.value = "";
         
@@ -226,8 +244,11 @@ document.getElementById('mainBtn').onclick = async () => {
     btn.textContent = "➕ Добавить запись";
 };
 
+////////////////////////////////////////////////////////////
 // REAL-TIME СИНХРОНИЗАЦИЯ
+////////////////////////////////////////////////////////////
 const q = query(collection(db, "requests"), orderBy("timestamp", "desc"));
+
 onSnapshot(q, (snapshot) => {
     const feed = document.getElementById('feed');
     feed.innerHTML = '';
@@ -237,8 +258,10 @@ onSnapshot(q, (snapshot) => {
         return;
     }
     
-    snapshot.forEach((doc) => {
-        const data = doc.data();
+    snapshot.forEach((docItem) => {
+        const data = docItem.data();
+        const postId = docItem.id;
+        
         const timeString = data.timestamp 
             ? data.timestamp.toDate().toLocaleString('ru-RU', { 
                 hour: '2-digit', 
@@ -248,16 +271,23 @@ onSnapshot(q, (snapshot) => {
               })
             : 'только что';
         
-        const postId = doc.id;
-        
         feed.innerHTML += `
             <div class="post" id="post-${postId}">
                 <span class="time">🕐 ${timeString}</span>
                 <b>${data.name || 'Без имени'}</b>
                 <p>📧 ${data.email || 'Нет email'}</p>
-                <button class="like-btn" onclick="processLike('${postId}')">
-                    ❤️ <span>${data.likes || 0}</span>
-                </button>
+
+                <div style="margin-top:10px; display:flex; gap:8px;">
+                    <button class="like-btn" onclick="processLike('${postId}')">
+                        ❤️ ${data.likes || 0}
+                    </button>
+                    <button class="like-btn" onclick="editRequest('${postId}', '${data.name}')">
+                        ✏️
+                    </button>
+                    <button class="like-btn" onclick="deleteRequest('${postId}')">
+                        🗑
+                    </button>
+                </div>
             </div>
         `;
     });
