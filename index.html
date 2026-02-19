@@ -154,6 +154,24 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+const newName = prompt("Введите новое имя:", currentName);
+
+    if (!newName || newName.trim().length <= 2) {
+        alert("Имя должно быть длиннее 2 символов");
+        return;
+    }
+
+    try {
+        await updateDoc(doc(db, "requests", id), {
+            name: newName.trim()
+        });
+    } catch (error) {
+        console.error("Ошибка редактирования:", error);
+        alert("Не удалось обновить запись");
+    }
+};
+
+
 // ГЛОБАЛЬНАЯ ФУНКЦИЯ ДЛЯ ЛАЙКОВ
 window.processLike = async (id) => {
     const docRef = doc(db, "requests", id);
