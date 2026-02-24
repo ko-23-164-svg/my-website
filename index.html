@@ -1,78 +1,98 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <title>BaaS Dashboard</title>
-    <style>
-    body { 
-        font-family: 'Inter', sans-serif; 
-        background: #f4f7f6; 
-        display: flex; 
-        flex-direction: column; 
-        align-items: center; 
-        padding: 20px; 
-        margin: 0;
-    }
-    .container { 
-        width: 100%; 
-        max-width: 500px; 
-        background: white; 
-        padding: 25px; 
-        border-radius: 12px; 
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
-    }
-    h3 { margin-top: 0; }
-    input { 
-        width: 100%; 
-        padding: 12px; 
-        margin: 8px 0; 
-        border: 1px solid #ddd; 
-        border-radius: 6px; 
-        box-sizing: border-box; 
-    }
-    button { 
-        background: #007bfe; 
-        color: white; 
-        border: none; 
-        padding: 10px; 
-        border-radius: 6px; 
-        cursor: pointer; 
-    }
-    button:hover { background: #0056b3; }
-    button:disabled { background: #ccc; }
-    .post { 
-        background: white; 
-        border: 1px solid #eaeaea; 
-        padding: 15px; 
-        margin-top: 15px; 
-        border-radius: 8px; 
-        width: 100%; 
-        max-width: 500px; 
-    }
-    .like-btn { 
-        margin-top: 8px;
-        margin-right: 5px;
-        background: #f1f1f1;
-        color: black;
-    }
-    .time { 
-        font-size: 11px; 
-        color: #999; 
-        float: right; 
-    }
-    #feed {
-        width: 100%;
-        max-width: 500px;
-    }
-    </style>
+<meta charset="UTF-8">
+<title>BaaS Dashboard</title>
+
+<style>
+body { 
+    font-family: 'Inter', sans-serif; 
+    background: #f4f7f6; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    padding: 20px; 
+    margin: 0;
+}
+.container { 
+    width: 100%; 
+    max-width: 500px; 
+    background: white; 
+    padding: 25px; 
+    border-radius: 12px; 
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+}
+h3 { margin-top: 0; }
+input { 
+    width: 100%; 
+    padding: 12px; 
+    margin: 8px 0; 
+    border: 1px solid #ddd; 
+    border-radius: 6px; 
+    box-sizing: border-box; 
+}
+button { 
+    background: #007bfe; 
+    color: white; 
+    border: none; 
+    padding: 10px; 
+    border-radius: 6px; 
+    cursor: pointer; 
+}
+button:hover { background: #0056b3; }
+button:disabled { background: #ccc; }
+
+.auth-btn {
+    margin-bottom: 10px;
+    background: #222;
+}
+
+.hidden {
+    display: none;
+}
+
+.post { 
+    background: white; 
+    border: 1px solid #eaeaea; 
+    padding: 15px; 
+    margin-top: 15px; 
+    border-radius: 8px; 
+    width: 100%; 
+    max-width: 500px; 
+}
+.like-btn { 
+    margin-top: 8px;
+    margin-right: 5px;
+    background: #f1f1f1;
+    color: black;
+}
+.time { 
+    font-size: 11px; 
+    color: #999; 
+    float: right; 
+}
+#feed {
+    width: 100%;
+    max-width: 500px;
+}
+</style>
 </head>
+
 <body>
 
 <div class="container">
     <h3>📊 Панель управления данными</h3>
-    <input type="text" id="name" placeholder="Имя профиля" autocomplete="off">
-    <input type="email" id="email" placeholder="Рабочий Email" autocomplete="off">
-    <button id="mainBtn">➕ Добавить запись</button>
+
+    <!-- 🔐 Авторизация -->
+    <button id="loginBtn" class="auth-btn">Войти через Google</button>
+    <button id="logoutBtn" class="auth-btn hidden">Выйти</button>
+
+    <!-- ➕ Форма (скрывается для гостей) -->
+    <div id="formBlock" class="hidden">
+        <input type="text" id="name" placeholder="Имя профиля" autocomplete="off">
+        <input type="email" id="email" placeholder="Рабочий Email" autocomplete="off">
+        <button id="mainBtn">➕ Добавить запись</button>
+    </div>
 </div>
 
 <div id="feed"></div>
@@ -84,25 +104,67 @@ import {
     serverTimestamp, updateDoc, doc, increment, deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
+import {
+    getAuth,
+    GoogleAuthProvider,
+    signInWithPopup,
+    signOut,
+    onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+
 // 🔹 Firebase config
 const firebaseConfig = {
-  apiKey: "AIzaSyAS1I_u_zQhjjEgZedrgCgy6S_LUaIF1q8",
-  authDomain: "gjgy-5930b.firebaseapp.com",
-  projectId: "gjgy-5930b",
-  storageBucket: "gjgy-5930b.firebasestorage.app",
-  messagingSenderId: "401653343249",
-  appId: "1:401653343249:web:60fbdb5cef88a9c1b4bdb0",
-  measurementId: "G-VVP7H6TBHZ"
+  apiKey: "YOUR_KEY",
+  authDomain: "YOUR_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
 };
 
 // 🔹 Init
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+
+/////////////////////////////////////////////////////////
+// 🔐 Авторизация
+/////////////////////////////////////////////////////////
+
+const loginBtn = document.getElementById('loginBtn');
+const logoutBtn = document.getElementById('logoutBtn');
+const formBlock = document.getElementById('formBlock');
+
+loginBtn.onclick = async () => {
+    try {
+        await signInWithPopup(auth, provider);
+    } catch (error) {
+        alert("Ошибка входа");
+    }
+};
+
+logoutBtn.onclick = async () => {
+    await signOut(auth);
+};
+
+// 🔄 Отслеживание состояния входа
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        loginBtn.classList.add("hidden");
+        logoutBtn.classList.remove("hidden");
+        formBlock.classList.remove("hidden");
+    } else {
+        loginBtn.classList.remove("hidden");
+        logoutBtn.classList.add("hidden");
+        formBlock.classList.add("hidden");
+    }
+});
 
 /////////////////////////////////////////////////////////
 // ➕ Добавление записи
 /////////////////////////////////////////////////////////
 document.getElementById('mainBtn').onclick = async () => {
+    const user = auth.currentUser;
+    if (!user) return alert("Необходимо войти");
+
     const name = document.getElementById('name').value.trim();
     const email = document.getElementById('email').value.trim();
 
@@ -114,6 +176,7 @@ document.getElementById('mainBtn').onclick = async () => {
             name,
             email,
             likes: 0,
+            userId: user.uid,
             timestamp: serverTimestamp()
         });
 
@@ -121,7 +184,6 @@ document.getElementById('mainBtn').onclick = async () => {
         document.getElementById('email').value = "";
     } catch (error) {
         alert("Ошибка добавления");
-        console.error(error);
     }
 };
 
@@ -129,42 +191,35 @@ document.getElementById('mainBtn').onclick = async () => {
 // ❤️ Лайк
 /////////////////////////////////////////////////////////
 window.processLike = async (id) => {
-    try {
-        await updateDoc(doc(db, "requests", id), {
-            likes: increment(1)
-        });
-    } catch (error) {
-        alert("Ошибка лайка");
-    }
+    if (!auth.currentUser) return alert("Войдите для лайка");
+
+    await updateDoc(doc(db, "requests", id), {
+        likes: increment(1)
+    });
 };
 
 /////////////////////////////////////////////////////////
 // ✏️ Редактирование
 /////////////////////////////////////////////////////////
 window.editRequest = async (id, currentName) => {
+    if (!auth.currentUser) return alert("Войдите для редактирования");
+
     const newName = prompt("Новое имя:", currentName);
     if (!newName || newName.trim().length <= 2) return;
 
-    try {
-        await updateDoc(doc(db, "requests", id), {
-            name: newName.trim()
-        });
-    } catch (error) {
-        alert("Ошибка редактирования");
-    }
+    await updateDoc(doc(db, "requests", id), {
+        name: newName.trim()
+    });
 };
 
 /////////////////////////////////////////////////////////
 // 🗑 Удаление
 /////////////////////////////////////////////////////////
 window.deleteRequest = async (id) => {
+    if (!auth.currentUser) return alert("Войдите для удаления");
     if (!confirm("Удалить запись?")) return;
 
-    try {
-        await deleteDoc(doc(db, "requests", id));
-    } catch (error) {
-        alert("Ошибка удаления");
-    }
+    await deleteDoc(doc(db, "requests", id));
 };
 
 /////////////////////////////////////////////////////////
