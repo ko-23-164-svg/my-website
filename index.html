@@ -1,261 +1,79 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>BaaS Dashboard</title>
-
-<style>
-body { 
-    font-family: 'Inter', sans-serif; 
-    background: #f4f7f6; 
-    display: flex; 
-    flex-direction: column; 
-    align-items: center; 
-    padding: 20px; 
-    margin: 0;
-}
-.container { 
-    width: 100%; 
-    max-width: 500px; 
-    background: white; 
-    padding: 25px; 
-    border-radius: 12px; 
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
-}
-h3 { margin-top: 0; }
-input { 
-    width: 100%; 
-    padding: 12px; 
-    margin: 8px 0; 
-    border: 1px solid #ddd; 
-    border-radius: 6px; 
-    box-sizing: border-box; 
-}
-button { 
-    background: #007bfe; 
-    color: white; 
-    border: none; 
-    padding: 10px; 
-    border-radius: 6px; 
-    cursor: pointer; 
-}
-button:hover { background: #0056b3; }
-button:disabled { background: #ccc; }
-
-.auth-btn {
-    margin-bottom: 10px;
-    background: #222;
-}
-
-.hidden {
-    display: none;
-}
-
-.post { 
-    background: white; 
-    border: 1px solid #eaeaea; 
-    padding: 15px; 
-    margin-top: 15px; 
-    border-radius: 8px; 
-    width: 100%; 
-    max-width: 500px; 
-}
-.like-btn { 
-    margin-top: 8px;
-    margin-right: 5px;
-    background: #f1f1f1;
-    color: black;
-}
-.time { 
-    font-size: 11px; 
-    color: #999; 
-    float: right; 
-}
-#feed {
-    width: 100%;
-    max-width: 500px;
-}
-</style>
+<title>Status Monitor</title>
 </head>
 
 <body>
 
-<div class="container">
-    <h3>📊 Панель управления данными</h3>
+<h2 id="myInfo"></h2>
 
-    <!-- 🔐 Авторизация -->
-    <button id="loginBtn" class="auth-btn">Войти через Google</button>
-    <button id="logoutBtn" class="auth-btn hidden">Выйти</button>
+<button onclick="changeStatus('Работаю', 'green')">Работаю</button>
+<button onclick="changeStatus('Занят', 'orange')">Занят</button>
+<button onclick="changeStatus('Отошел', 'red')">Отошел</button>
 
-    <!-- ➕ Форма (скрывается для гостей) -->
-    <div id="formBlock" class="hidden">
-        <input type="text" id="name" placeholder="Имя профиля" autocomplete="off">
-        <input type="email" id="email" placeholder="Рабочий Email" autocomplete="off">
-        <button id="mainBtn">➕ Добавить запись</button>
-    </div>
-</div>
-
-<div id="feed"></div>
+<h3>Группа</h3>
+<div id="groupList"></div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-import {
-    getFirestore, collection, addDoc, query, orderBy, onSnapshot,
-    serverTimestamp, updateDoc, doc, increment, deleteDoc
-} from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
-import {
-    getAuth,
-    GoogleAuthProvider,
-    signInWithPopup,
-    signOut,
-    onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-// 🔹 Firebase config
-const firebaseConfig = {
-  apiKey: "YOUR_KEY",
-  authDomain: "YOUR_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-};
+const URL = "https://rcncrgizzyjohvbdpqnl.supabase.co"; 
+const KEY = "sb_publishable_suGeAHcyUbdU3MNxPdhA_w_fNnePe58"; // твой publishable key
+const supabase = createClient(URL, KEY);
 
-// 🔹 Init
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
-const provider = new GoogleAuthProvider();
+const MY_ID = "4bc569de-89f8-47d9-96b0-2d3bd2439122"; // твой id из таблицы profiles
 
-/////////////////////////////////////////////////////////
-// 🔐 Авторизация
-/////////////////////////////////////////////////////////
+window.changeStatus = async (text, color) => {
 
-const loginBtn = document.getElementById('loginBtn');
-const logoutBtn = document.getElementById('logoutBtn');
-const formBlock = document.getElementById('formBlock');
+    const { error } = await supabase
+        .from('profiles')
+        .update({ status: text, color: color })
+        .eq('id', MY_ID);
 
-loginBtn.onclick = async () => {
-    try {
-        await signInWithPopup(auth, provider);
-    } catch (error) {
-        alert("Ошибка входа");
-    }
-};
-
-logoutBtn.onclick = async () => {
-    await signOut(auth);
-};
-
-// 🔄 Отслеживание состояния входа
-onAuthStateChanged(auth, (user) => {
-    if (user) {
-        loginBtn.classList.add("hidden");
-        logoutBtn.classList.remove("hidden");
-        formBlock.classList.remove("hidden");
+    if (error) {
+        alert("Ошибка! Проверьте RLS.");
+        console.error(error);
     } else {
-        loginBtn.classList.remove("hidden");
-        logoutBtn.classList.add("hidden");
-        formBlock.classList.add("hidden");
-    }
-});
-
-/////////////////////////////////////////////////////////
-// ➕ Добавление записи
-/////////////////////////////////////////////////////////
-document.getElementById('mainBtn').onclick = async () => {
-    const user = auth.currentUser;
-    if (!user) return alert("Необходимо войти");
-
-    const name = document.getElementById('name').value.trim();
-    const email = document.getElementById('email').value.trim();
-
-    if (name.length <= 2) return alert("Имя должно быть длиннее 2 символов");
-    if (!email.includes('@')) return alert("Введите корректный email");
-
-    try {
-        await addDoc(collection(db, "requests"), {
-            name,
-            email,
-            likes: 0,
-            userId: user.uid,
-            timestamp: serverTimestamp()
-        });
-
-        document.getElementById('name').value = "";
-        document.getElementById('email').value = "";
-    } catch (error) {
-        alert("Ошибка добавления");
+        fetchGroup();
     }
 };
 
-/////////////////////////////////////////////////////////
-// ❤️ Лайк
-/////////////////////////////////////////////////////////
-window.processLike = async (id) => {
-    if (!auth.currentUser) return alert("Войдите для лайка");
+async function fetchGroup() {
 
-    await updateDoc(doc(db, "requests", id), {
-        likes: increment(1)
-    });
-};
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('username', { ascending: true });
 
-/////////////////////////////////////////////////////////
-// ✏️ Редактирование
-/////////////////////////////////////////////////////////
-window.editRequest = async (id, currentName) => {
-    if (!auth.currentUser) return alert("Войдите для редактирования");
-
-    const newName = prompt("Новое имя:", currentName);
-    if (!newName || newName.trim().length <= 2) return;
-
-    await updateDoc(doc(db, "requests", id), {
-        name: newName.trim()
-    });
-};
-
-/////////////////////////////////////////////////////////
-// 🗑 Удаление
-/////////////////////////////////////////////////////////
-window.deleteRequest = async (id) => {
-    if (!auth.currentUser) return alert("Войдите для удаления");
-    if (!confirm("Удалить запись?")) return;
-
-    await deleteDoc(doc(db, "requests", id));
-};
-
-/////////////////////////////////////////////////////////
-// 🔄 Real-time обновление
-/////////////////////////////////////////////////////////
-const q = query(collection(db, "requests"), orderBy("timestamp", "desc"));
-
-onSnapshot(q, (snapshot) => {
-    const feed = document.getElementById('feed');
-    feed.innerHTML = "";
-
-    if (snapshot.empty) {
-        feed.innerHTML = "<div class='post'>📭 Нет записей</div>";
+    if (error) {
+        console.error(error);
         return;
     }
 
-    snapshot.forEach((item) => {
-        const data = item.data();
-        const id = item.id;
+    const list = document.getElementById('groupList');
 
-        const time = data.timestamp
-            ? data.timestamp.toDate().toLocaleString("ru-RU")
-            : "только что";
+    list.innerHTML = data.map(user => `
+        <div>
+            <span style="color:${user.color || 'gray'}">●</span>
+            <b>${user.username}</b> — ${user.status || 'нет статуса'}
+        </div>
+    `).join('');
 
-        feed.innerHTML += `
-            <div class="post">
-                <span class="time">${time}</span>
-                <b>${data.name}</b>
-                <p>📧 ${data.email}</p>
-                <button class="like-btn" onclick="processLike('${id}')">❤️ ${data.likes}</button>
-                <button class="like-btn" onclick="editRequest('${id}', '${data.name}')">✏️</button>
-                <button class="like-btn" onclick="deleteRequest('${id}')">🗑</button>
-            </div>
-        `;
-    });
-});
+    const me = data.find(u => u.id === MY_ID);
+
+    if (me) {
+        document.getElementById('myInfo').innerText =
+            "Вы зашли как: " + me.username;
+    }
+}
+
+fetchGroup();
+
+setInterval(fetchGroup, 5000);
+
 </script>
 
 </body>
